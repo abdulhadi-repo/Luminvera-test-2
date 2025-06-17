@@ -1,20 +1,19 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { signIn, signUp, signOut, getCurrentUser, resendConfirmation, User } from '../lib/auth';
+import { supabase } from '../lib/supabase';
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  isEmailVerified: boolean;
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string; needsVerification?: boolean }>;
+  logout: () => Promise<void>;
+  resendVerification: (email: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -22,52 +21,90 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    isAuthenticated: false
+    isAuthenticated: false,
+    isLoading: true,
+    isEmailVerified: false
   });
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock successful login
-    const mockUser = {
-      id: '1',
-      name: 'John Doe',
-      email: email
-    };
-    
-    setAuthState({
-      user: mockUser,
-      isAuthenticated: true
+  useEffect(() => {
+    // Get initial session
+    getCurrentUser().then((user) => {
+      setAuthState({
+        user,
+        isAuthenticated: !!user,
+        isLoading: false,
+        isEmailVerified: !!user?.email_confirmed_at
+      });
     });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const user: User = {
+            id: session.user.id,
+            email: session.user.email!,
+            name: session.user.user_metadata?.name,
+            email_confirmed_at: session.user.email_confirmed_at
+          };
+          
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            isEmailVerified: !!session.user.email_confirmed_at
+          });
+        } else {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            isEmailVerified: false
+          });
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const { user, error } = await signIn(email, password);
     
-    return true;
+    if (error) {
+      return { success: false, error };
+    }
+
+    return { success: true };
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  const register = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string; needsVerification?: boolean }> => {
+    const { user, error } = await signUp(email, password, name);
     
-    // Mock successful registration
-    const mockUser = {
-      id: Math.random().toString(),
-      name: name,
-      email: email
-    };
-    
-    setAuthState({
-      user: mockUser,
-      isAuthenticated: true
-    });
-    
-    return true;
+    if (error) {
+      return { success: false, error };
+    }
+
+    // If user is created but email not confirmed, they need verification
+    if (user && !user.email_confirmed_at) {
+      return { success: true, needsVerification: true };
+    }
+
+    return { success: true };
   };
 
-  const logout = () => {
-    setAuthState({
-      user: null,
-      isAuthenticated: false
-    });
+  const logout = async (): Promise<void> => {
+    await signOut();
+  };
+
+  const resendVerification = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    const { error } = await resendConfirmation(email);
+    
+    if (error) {
+      return { success: false, error };
+    }
+
+    return { success: true };
   };
 
   return (
@@ -75,7 +112,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ...authState,
       login,
       register,
-      logout
+      logout,
+      resendVerification
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 interface SurveyContextType {
   showSurvey: boolean;
@@ -12,6 +13,7 @@ const SurveyContext = createContext<SurveyContextType | null>(null);
 export const SurveyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [showSurvey, setShowSurvey] = useState(false);
   const [hasSeenSurvey, setHasSeenSurvey] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     // Check if user has seen survey before
@@ -19,14 +21,19 @@ export const SurveyProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (surveyShown) {
       setHasSeenSurvey(true);
     } else {
-      // Show survey after 10 seconds for new users
-      const timer = setTimeout(() => {
-        setShowSurvey(true);
-      }, 10000);
+      // Only show survey on product pages, not on home page
+      const isProductPage = location.pathname.startsWith('/product/');
+      
+      if (isProductPage) {
+        // Show survey after 15 seconds on product pages for new users
+        const timer = setTimeout(() => {
+          setShowSurvey(true);
+        }, 15000);
 
-      return () => clearTimeout(timer);
+        return () => clearTimeout(timer);
+      }
     }
-  }, []);
+  }, [location.pathname]);
 
   const markSurveyAsSeen = () => {
     localStorage.setItem('surveyShown', 'true');

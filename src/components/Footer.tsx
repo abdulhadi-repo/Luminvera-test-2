@@ -143,10 +143,11 @@ const Footer: React.FC = () => {
         {/* Bottom Section */}
         <div className="mt-12 md:mt-16 pt-8 border-t border-gray-200">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-           <center> <p className="text-center md:text-left text-gray-500 text-sm">
-              © 2024- {new Date().getFullYear()} Luminvera. All rights reserved. Made with ❤️ for our customers worldwide.
-            </p>
-             <center/>
+            <div className="text-center">
+              <p className="text-center md:text-left text-gray-500 text-sm">
+                © 2024- {new Date().getFullYear()} Luminvera. All rights reserved. Made with ❤️ for our customers worldwide.
+              </p>
+            </div>
             <div className="flex items-center space-x-6 text-sm text-gray-500">
               <Link to="/terms" className="hover:text-orange-500 transition-colors">Terms</Link>
               <Link to="/privacy" className="hover:text-orange-500 transition-colors">Privacy</Link>

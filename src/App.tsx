@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { SurveyProvider } from './context/SurveyContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import EmailVerificationBanner from './components/EmailVerificationBanner';
 import SurveyModal from './components/SurveyModal';
 import HomePage from './pages/HomePage';
 import CategoryPage from './pages/CategoryPage';
@@ -27,6 +28,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
+      <EmailVerificationBanner />
       <main className="flex-1 pt-24 md:pt-28">
         <Routes>
           <Route path="/" element={<HomePage />} />
