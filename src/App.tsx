@@ -57,9 +57,9 @@ function App() {
     <AuthProvider>
       <CartProvider>
         <SurveyProvider>
-          <Router>
+
             <AppContent />
-          </Router>
+
         </SurveyProvider>
       </CartProvider>
     </AuthProvider>
